@@ -1,0 +1,34 @@
+#version 400 core
+
+in vec2 passTextureCoords;
+in vec3 surfaceNormal;
+in vec3 lightVector;
+in vec3 cameraVector;
+
+out vec4 outColor;
+
+uniform sampler2D textureSampler;
+
+uniform vec3 lightColor;
+uniform float shineDamper;
+uniform float reflectivity;
+
+void main(void){
+	vec3 unitNormal = normalize(surfaceNormal);
+	vec3 unitLightVector = normalize(lightVector);
+	
+	float dotProduct = dot(unitNormal, unitLightVector);
+	float brightness = max(dotProduct, 0.2);
+	vec3 diffuse = brightness * lightColor;
+	
+	vec3 unitCameraVector = normalize(cameraVector);
+	vec3 lightDirection = -unitLightVector;
+	vec3 reflectedLightDirection = reflect(lightDirection, unitNormal);
+	
+	float specularFactor = dot(reflectedLightDirection, unitCameraVector);
+	specularFactor = max(specularFactor, 0.0);
+	float dampedFactor = pow(specularFactor, shineDamper);
+	vec3 finalSpecular = dampedFactor * reflectivity * lightColor;
+	
+	outColor = vec4(diffuse, 1.0) * texture(textureSampler, passTextureCoords) + vec4(finalSpecular, 0.0);
+}
