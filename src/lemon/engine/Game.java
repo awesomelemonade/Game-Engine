@@ -33,7 +33,6 @@ import lemon.engine.input.KeyEvent;
 import lemon.engine.input.MouseButtonEvent;
 import lemon.engine.loader.Loader;
 import lemon.engine.math.Location;
-import lemon.engine.math.TransformationMatrix;
 import lemon.engine.math.Vector;
 import lemon.engine.screen.Screen;
 import lemon.engine.screen.ScreenChangeEvent;
@@ -44,7 +43,6 @@ import lemon.engine.time.Timer;
 import lemon.render.ModelData;
 import lemon.render.ObjLoader;
 import lemon.render.RawModel;
-import lemon.render.ShaderProgram;
 import lemon.render.Texture;
 import lemon.render.UniformVariable;
 
@@ -53,8 +51,8 @@ public class Game implements Screen, Listener {
 	private Camera camera;
 	private Entity entity;
 	private EntityModel model;
-	private ShaderProgram colorShaderProgram;
-	private ShaderProgram textureShaderProgram;
+	private ColorShaderProgram colorShaderProgram;
+	private TextureShaderProgram textureShaderProgram;
 	private UniformVariable uniform_shineDamper;
 	private UniformVariable uniform_reflectivity;
 	private UniformVariable uniform_lightColor;
@@ -137,14 +135,16 @@ public class Game implements Screen, Listener {
 		colorShaderProgram = new ColorShaderProgram(new int[]{0, 3, 2});
 		camera = new Camera(new Location());
 		entity = new TestEntity(new Location(new Vector(0f, -2f, -25f), new Vector(0f, 0f, 0f), new Vector(1f, 1f, 1f)));
-		uniform_shineDamper = program.getUniformVariable("shineDamper");
-		uniform_reflectivity = program.getUniformVariable("reflectivity");
-		uniform_lightPosition = program.getUniformVariable("lightPosition");
-		uniform_lightColor = program.getUniformVariable("lightColor");
-		GL20.glUseProgram(program.getId());
+		uniform_shineDamper = colorShaderProgram.getUniformVariable("shineDamper");
+		uniform_reflectivity = colorShaderProgram.getUniformVariable("reflectivity");
+		uniform_lightPosition = colorShaderProgram.getUniformVariable("lightPosition");
+		uniform_lightColor = colorShaderProgram.getUniformVariable("lightColor");
+		GL20.glUseProgram(colorShaderProgram.getId());
+		camera.setMatrix(colorShaderProgram);
 		camera.loadProjectionMatrix(60f, getAspectRatio(window), 0.1f, 100f);
 		uniform_lightPosition.loadVector(new Vector(0, 0, -5));
 		uniform_lightColor.loadVector(new Vector(1, 1, 1));
+		camera.setMatrix(null);
 		GL20.glUseProgram(0);
 		/*try {
 			texture = new Texture(ImageIO.read(new File("res/Eye.jpg")));
@@ -258,9 +258,10 @@ public class Game implements Screen, Listener {
 		
 		//GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureBank[(int)(Math.random()*textureBank.length)].getId());
 		
-		GL20.glUseProgram(program.getId());
-		camera.loadModelMatrix(entity.getLocation());
+		GL20.glUseProgram(colorShaderProgram.getId());
+		camera.setMatrix(colorShaderProgram);
 		camera.loadViewMatrix();
+		camera.loadModelMatrix(entity.getLocation());
 		uniform_shineDamper.loadFloat(texture.getShineDamper());
 		uniform_reflectivity.loadFloat(texture.getReflectivity());
 		GL30.glBindVertexArray(model.getVaoId());
@@ -270,7 +271,9 @@ public class Game implements Screen, Listener {
 		GL30.glBindVertexArray(textModel.getVaoId());
 		textModel.render();
 		GL30.glBindVertexArray(0);
+		camera.setMatrix(null);
 		GL20.glUseProgram(0);
+		
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
 		GL11.glDisable(GL11.GL_DEPTH_TEST);
 		GL11.glDisable(GL11.GL_BLEND);
